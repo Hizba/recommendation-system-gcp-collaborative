@@ -1,6 +1,5 @@
 FROM python:3.10-slim
 
-# Outils de compilation pour scikit-surprise
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3-dev \
@@ -9,14 +8,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Dépendances Python
 COPY requirements.txt .
 RUN pip install --upgrade pip setuptools wheel \
     && pip install -r requirements.txt
 
-# Code de l'application
-COPY . .
+COPY main.py .
 
-# Cloud Run
 ENV PORT=8080
 CMD ["gunicorn", "-b", ":8080", "main:app"]
