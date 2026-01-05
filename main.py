@@ -51,7 +51,6 @@ def _load_cf_models_if_needed() -> None:
     print("  ratings_df :", LOCAL_RATINGS_PATH, "taille =", os.path.getsize(LOCAL_RATINGS_PATH))
     _CF_RATINGS_DF = pd.read_pickle(LOCAL_RATINGS_PATH)
     _CF_MODEL = joblib.load(LOCAL_CF_MODEL_PATH)
-    
 
     print("Modèle SVD et ratings_df chargés en mémoire.")
 
