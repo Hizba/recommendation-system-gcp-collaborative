@@ -23,10 +23,10 @@ _CF_RATINGS_DF = None
 
 
 # ==============================
-# 2) Chargement modèle + données
+# 2) Chargement modèle + données AU DÉMARRAGE
 # ==============================
 
-def _load_cf_models_if_needed() -> None:
+def load_cf_models_on_startup() -> None:
     global _CF_MODEL, _CF_RATINGS_DF
 
     if _CF_MODEL is not None and _CF_RATINGS_DF is not None:
@@ -49,10 +49,16 @@ def _load_cf_models_if_needed() -> None:
     print("Fichiers locaux :")
     print("  modèle :", LOCAL_CF_MODEL_PATH, "taille =", os.path.getsize(LOCAL_CF_MODEL_PATH))
     print("  ratings_df :", LOCAL_RATINGS_PATH, "taille =", os.path.getsize(LOCAL_RATINGS_PATH))
+
+    # Chargement en mémoire
     _CF_RATINGS_DF = pd.read_pickle(LOCAL_RATINGS_PATH)
     _CF_MODEL = joblib.load(LOCAL_CF_MODEL_PATH)
 
     print("Modèle SVD et ratings_df chargés en mémoire.")
+
+
+# Appel au démarrage du module (lorsque le conteneur se lance)
+load_cf_models_on_startup()
 
 
 # ==============================
@@ -62,10 +68,12 @@ def _load_cf_models_if_needed() -> None:
 def recommend_top_k_collaborative(user_id: int, k: int = 5) -> List[Dict[str, Any]]:
     from surprise import PredictionImpossible
 
-    _load_cf_models_if_needed()
-
     svd = _CF_MODEL
     ratings_df = _CF_RATINGS_DF
+
+    if svd is None or ratings_df is None:
+        # Sécurité au cas où le chargement aurait échoué
+        raise RuntimeError("Collaborative model not loaded")
 
     user_rows = ratings_df[ratings_df["user_id"] == user_id]
     if user_rows.empty:
@@ -98,7 +106,11 @@ app = Flask(__name__)
 
 @app.route("/health", methods=["GET"])
 def health() -> Any:
-    return jsonify({"status": "ok"}), 200
+    # Vérifie aussi que les modèles sont bien en mémoire
+    health_status = {
+        "status": "ok" if (_CF_MODEL is not None and _CF_RATINGS_DF is not None) else "loading_error",
+    }
+    return jsonify(health_status), 200
 
 
 @app.route("/recommend_collab", methods=["POST"])
